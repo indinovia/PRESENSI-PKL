@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>Presensi</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <!-- Tombol Logout -->
+    <a href="#" id="logoutBtn" class="logout-btn">Logout</a>
+
+    <div class="presensi-box">
+        <!-- Waktu dan Tanggal -->
+        <div class="time-container">
+            <h1 id="clock"></h1>
+            <p id="date"></p>
+        </div>
+
+        <!-- Tombol untuk melakukan presensi -->
+        <div class="btn-container">
+            <button onclick="kirimPesan('datang')" class="btn datang">
+                <i class="fas fa-sign-in-alt"></i> Datang
+            </button>
+            <br>
+            <button onclick="kirimPesan('pulang')" class="btn pulang">
+                <i class="fas fa-sign-out-alt"></i> Pulang
+            </button>
+        </div>
+
+        <!-- Informasi mengenai presensi -->
+        <div class="presensi-info">
+            <h3>Presensi Info</h3>
+            <p id="presensi-message">Data Presensi Akan Ditampilkan di Sini</p>
+            <p id="location-link" style="display: none;"></p> <!-- Link lokasi akan ditampilkan di sini -->
+        </div>
+
+        <!-- Jadwal kerja -->
+        <div class="work-schedule">
+            <h3>JAM KERJA</h3>
+            <p>SENIN 07:30 - 16:30</p>
+            <p>SELASA 07:30 - 16:30</p>
+            <p>RABU 07:30 - 16:30</p>
+            <p>KAMIS 07:30 - 16:30</p>
+            <p>JUMAT 07:30 - 16:30</p>
+        </div>
+    </div>
+
+    <script src="sendToTelegram.js"></script>
+    <script src="presensi.js"></script>
+
+    <script>
+        // Fungsi untuk memperbarui waktu dan tanggal real-time
+        function updateTime() {
+            const clock = document.getElementById("clock");
+            const date = document.getElementById("date");
+
+            const now = new Date();
+            // Mengupdate tampilan jam
+            clock.innerHTML = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            // Mengupdate tampilan tanggal
+            date.innerHTML = now.toLocaleDateString('id-ID', {
+                weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+            });
+        }
+        // Memperbarui waktu setiap detik
+        setInterval(updateTime, 1000);
+
+        // Fungsi untuk mengirim pesan presensi
+        function kirimPesan(type) {
+            const username = localStorage.getItem("loggedInUser");
+
+            // Mengecek apakah pengguna sudah login
+            if (!username) {
+                alert("Silakan login terlebih dahulu!");
+                window.location.href = "index.html"; // Arahkan ke halaman login jika belum login
+                return;
+            }
+
+            let message;
+            // Menentukan pesan yang akan ditampilkan berdasarkan jenis presensi
+            switch (type) {
+                case "datang":
+                    message = "Presensi berhasil! Selamat Datang, " + username;
+                    break;
+                case "pulang":
+                    message = "Presensi berhasil! Selamat Jalan, " + username;
+                    break;
+            }
+            // Menampilkan pesan presensi di halaman
+            document.getElementById("presensi-message").textContent = message;
+
+            // Mengirim pesan ke Telegram
+            kirimPesanTelegram(type, username);
+
+            // Mengambil lokasi terkini
+            navigator.geolocation.getCurrentPosition(function(position) {
+                const { latitude, longitude } = position.coords;
+                // Mengirim lokasi ke Telegram
+                kirimLokasiKeTelegram(latitude, longitude, type, username);
+
+                // Tampilkan link lokasi di peta
+                const locationLink = `https://www.google.com/maps?q=${latitude},${longitude}`;
+                document.getElementById("location-link").innerHTML = `<a href="${locationLink}" target="_blank">Lihat Lokasi di Peta</a>`;
+                document.getElementById("location-link").style.display = "block"; // Menampilkan link lokasi
+            }, function(error) {
+                console.error("Error getting location: ", error);
+                alert("Tidak dapat mengambil lokasi. Presensi tetap tercatat tanpa lokasi."); // Pesan jika lokasi tidak dapat diambil
+            });
+        }
+
+        // Fungsi logout
+        function logout() {
+            localStorage.removeItem("loggedInUser"); // Menghapus data pengguna yang login
+            window.location.href = "index.html"; // Arahkan ke halaman login
+        }
+
+        // Event listener untuk tombol logout
+        document.getElementById("logoutBtn").addEventListener("click", logout);
+
+        // Mengecek status login saat halaman dimuat
+        document.addEventListener("DOMContentLoaded", function () {
+            const username = localStorage.getItem("loggedInUser");
+
+            // Jika belum login, arahkan ke halaman login
+            if (!username) {
+                alert("Silakan login terlebih dahulu!");
+                window.location.href = "index.html";
+            }
+        });
+    </script>
+</body>
+</html>
